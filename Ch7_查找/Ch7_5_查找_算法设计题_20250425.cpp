@@ -41,7 +41,7 @@ typedef int InfoType; // 其他数据域类型。暂时假设为int类型
 } ElemType; // ElemType是线性表的元素类型，包含关键字和其他数据域。KeyType是关键字类型。
 
 typedef struct SSTable{
-    ElemType *R;
+    ElemType *R; // 线性表的元素数组
     int length; // 线性表的长度
 }SSTable; // SSTable是顺序表，包含关键字和其他数据域。ElemType是线性表的元素类型，包含关键字和其他数据域。
 
@@ -56,6 +56,11 @@ typedef struct BSTNode{ // 二叉排序树结点类型
 typedef int KeyType; // 关键字类型。暂时假设为int类型
 typedef int InfoType; // 其他数据域类型。暂时假设为int类型
 
+typedef struct LNode {
+    KeyType data;
+    InfoType otherinfo;
+    struct LNode *next;
+} LNode, *LinkList; // 链表结点类型, 适配散列表的链地址法（拉链法）。
 
 // 散列表定义（数组的每个元素是链表头指针）
 typedef LNode* HashTable[m]; // 每个槽是 LNode*（即链表的头指针），适用于散列表的链地址法（拉链法）。
@@ -67,11 +72,6 @@ int Hash(KeyType key){
     return key % n; // 除留余数法。
 }
 
-typedef struct LNode {
-    KeyType data;
-    InfoType otherinfo;
-    struct LNode *next;
-} LNode, *LinkList; // 链表结点类型, 适配散列表的链地址法（拉链法）。
 
  /* ---------- End of 定义 ---------- */
 
@@ -98,7 +98,7 @@ void JudgeBST(BSTree T, int &flag){
         JudgeBST(T->lchild, flag); // 判断左子树
         if(pre==NULL) pre = T; // 如果前驱结点为空，则当前结点为前驱结点.中序遍历的第一个结点不必比较（此时相当于走到了最左边也就是最小的结点）
         else if (pre->data.key < T->data.key) pre = T; // 如果前驱结点小于当前结点，则更新前驱结点为当前结点
-        else flag = 0; // 否则，flag置为0，表示不是二叉排序树
+        else flag = 0; return; // 否则，flag置为0，表示不是二叉排序树。并且返回，结束该函数（不用再判断之后的rchild了）
         JudgeBST(T->rchild, flag); // 判断右子树
     }
 }
@@ -111,16 +111,18 @@ void JudgeBST(BSTree T, int &flag){
 
 void PrintAllx(BSTree T, KeyType x){
     // 输出二叉排序树中所有数据值≥x的结点的数据
-    if(T){
-        PrintAllx(T->lchild, x); // 输出左子树
-        if(T->data.key >= x) cout<<T->data.key<<" "; // 输出当前结点的数据
-        PrintAllx(T->rchild, x); // 输出右子树
+    if(T){ // 如果当前结点不为空，则继续遍历
+        if(T->data.key>=x){ // 如果当前结点的数据值≥x，则
+            PrintAllx(T->lchild, x); // 递归左子树（毕竟根节点的key是大于lchild的key的，所以如果连根节点都小于x，lchild也一定小于x）
+            cout<<T->data.key<<" "; // 输出当前结点的数据
+        }
+        PrintAllx(T->rchild, x); // 递归右子树
     }
 }
 
 // 4. 已知二叉树T的结点形式为(lchild,data,count,rchild),在树中查找值为x的结点，若找到则记数(count)加1;否则，
 // 作为一个新结点插入树中，插人后仍为二叉排序树。写出其非递归算法。
-// 思路：
+// 思路： while遍历迭代，并设置双亲节点（相当于链表的前驱节点）方便之后接入lchild或rchild。
 // 参考习题:p159
 
 // 定义一个带计数的二叉排序树结点类型BSTNode_count
@@ -133,27 +135,34 @@ typedef struct BSTNode_count{
 // 正式开始
 void SearchBST(BSTree_count &T, KeyType X){
     // 在二叉排序树中查找值为X的结点，若找到则记数(count)加1;否则，作为一个新结点插入树中。插人后仍为二叉排序树。
-    BSTNode_count *s = new BSTNode_count; // 定义一个新结点s
-    s->data.key = X;
-    s->count = 1; // 初始化计数为1（书上是0，但我觉得是1）
-    s->lchild = s->rchild = NULL;
     if(!T){ // 如果T为空，则s作为根结点插入, 结束该函数
-        T = s;
-        return;
+        // 新建一个结点s，初始化count为1，data为X，左右孩子为空
+        BSTNode_count *s = new BSTNode_count; // 定义一个新结点s
+        s->data.key = X; 
+        s->count = 1; // 初始化计数为1（书上是0，但我觉得是1）
+        s->lchild = s->rchild = NULL; 
+        T = s; // 将s作为根结点插入
+        return; // 结束该函数
     }
-    BSTNode_count *f = NULL, *q = T; // f为q的双亲结点,初始化为NULL。q为当前结点，初始化为根结点
-    while(q){ // 如果q不为空，则继续查找
-        if(q->data.key == X){ // 如果找到值为X的结点，则count加1，结束该函数。
-            q->count++;
+    BSTNode_count *q = NULL, *p = T; // f为q的双亲结点,初始化为NULL。q为当前结点，初始化为根结点。
+    while(p){ // 如果q不为空，则继续查找
+        if(p->data.key == X){ // 如果找到值为X的结点，则count加1，结束该函数。
+            p->count++;
             return;
         }
-        f = q; // 更新双亲结点
-        if(X<q->data.key) q = q->lchild; // 如果X小于当前结点的关键字，则向左子树查找
-        else q = q->rchild; // 否则，如果X大于当前结点的关键字，则向右子树查找
-    }
-    if(f->data.key > X) f->lchild = s; // 如果X小于父结点的关键字，则将s插入到左子树
-    else f->rchild = s; // 否则，将s插入到右子树
-}
+        q = p; // 更新双亲结点
+        if(X < p->data.key) p = p->lchild; // 如果X小于当前结点的关键字，则向左子树查找
+        else p = p->rchild; // 否则，如果X大于当前结点的关键字，则向右子树查找
+    } 
+    // 如果没有找到值为X的结点，则插入一个新结点s
+    BSTNode_count *s = new BSTNode_count; // 定义一个新结点s
+    s->data.key = X; 
+    s->count = 1; // 初始化计数为1（书上是0，但我觉得是1）
+    s->lchild = s->rchild = NULL; 
+    if(q->data.key > X) q->lchild = s; // 如果X小于双亲结点的关键字，则将s插入到左子树 
+    else q->rchild = s; // 否则，将s插入到右子树 
+} 
+
 
 // 5. 假设一棵平衡二叉树的每个结点都标明了平衡因子b，试设计一个算法，求平衡二叉树高度。
 // 思路：遍历或者递归
@@ -174,10 +183,11 @@ int Height(BSTree_BF T){
     while(p){
         ++level; // 每次循环高度加1
         if(p->b<0) p->rchild; // 如果平衡因子小于0，则向右子树移动
-        else if(p->b>0) p->lchild; // 如果平衡因子大于等于0，则向左子树移动
+        else p->lchild; // 如果平衡因子大于等于0，则向左子树移动
     }
     return level; // 返回高度
 }
+
 // 我的方法:递归
 int Height_custom(BSTree_BF T){
     // 根据平衡因子求平衡二叉树的高度
@@ -188,13 +198,13 @@ int Height_custom(BSTree_BF T){
 }
 
 // 6.分别写出在散列表中插入和删除关键字为K的一个记录的算法，设散列函数为H,解决冲突的方法为链地址法。
-// 思路：
+// 思路：用到链表的插入和删除。
 // 参考习题:p160-p161
 
 bool Insert_K(HashTable HT, KeyType K){
     // 在散列表中插入关键字为K的一个记录
     int i = Hash(K);
-    LNode *p = HT[i]; // 定义一个指针p，指向散列表的第ant个元素
+    LNode *p = HT[i]; // 定义一个指针p，指向散列表的第i个元素
     while(p->next){ // 如果p的下一个元素不为空，则继续查找
         if(p->next->data==K) return false; // 如果关键字已经存在，则返回false
         p = p->next; // 否则，继续查找
@@ -202,7 +212,7 @@ bool Insert_K(HashTable HT, KeyType K){
     // 使用尾插法插入新节点。
     LNode *s = new LNode; // 创建一个新的节点
     s->data=K; // 将关键字赋值给新节点
-    s->next = p->next; // 将新节点插入到链表的末尾
+    s->next = p->next; // 将新节点插入到链表的末尾。此时p->next == NULL。
     p->next = s; // 更新链表指针
     return true; // 返回true，表示插入成功
 }
