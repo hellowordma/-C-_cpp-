@@ -60,35 +60,45 @@ typedef int ArrType[RADIX]; // 数组类型
 // 性能对于顺序、无序、逆序的区别：没有区别。
 // 排序稳定性：稳定。
 // 适用性：适用于顺序表和链表。
+// 条件严格：需要满足关键字的主次关系以及各级关键字的取值范围。
 
 
 int ord(int x) {
     return x; // 简单映射，如果需要复杂处理，比如 x%10，可以改这里
 }
+int succ(int j) {
+    return j + 1; // 简单的后继函数，返回下一个索引
+}
 
 void Distribute(SLCell r[], int i, ArrType &f, ArrType &e){
-    // 静态链表L的r域中记录已按（key[0],key[1],...,key[i-1]）有序
+    // 分配：静态链表L的r域中记录已按（key[0],key[1],...,key[i-1]）有序
     // 本算法按照第i位关键字key[i]的值建立RADIX个子表，使得同一个子表中记录的关键字key[i]相同
-    // f[0,...RADIX-1]和e[0,...RADIX-1]分别纸箱各子表中第一个和最后一个记录
-    int j,p;
-    for(j=0; j<RADIX; j++) f[j]=0; // 初始化，让各个子表为空
-    for(p=r[0].next; p; p=r[p].next){ // 遍历静态链表L
-        j = ord(r[p].keys[i]); // ord函数将记录中第i个关键字映射到0~RADIX-1
-        if(!f[j]) f[j] = p; // 如果子表j为空，则将当前记录p作为子表j的第一个记录
-        else r[e[j]].next = p; // 否则，将当前记录p链接到子表j的最后一个记录后面
-        e[j] = p; // 更新子表j的最后一个记录
+    // f[0,...RADIX-1]和e[0,...RADIX-1]分别指向各子表中第一个和最后一个记录，相当于头指针和尾指针
+    int j, p;
+    for(j = 0; j < RADIX; ++j) 
+        f[j] = 0; // 初始化子表头指针数组f，表示开始时所有子表为空。
+
+    // 遍历静态链表，将每个节点按照第i个关键字放入对应子表。
+    for(p = r[0].next; p; p = r[p].next) {
+        j = ord(r[p].keys[i]); // 获取第i位关键字对应的桶编号（映射到0~RADIX-1）。相当于p这个结点的数字的第i位值是j。
+        if(!f[j]) {   
+            f[j] = p; // 如果子表为空，头指针f[j]指向p。
+        } else {
+            r[e[j]].next = p; // 如果子表不为空，则将p节点连接到子表j的尾部。
+        }
+        e[j] = p; // 更新子表j的尾指针e[j]为p。
     }
 }
 
 void Collect(SLCell r[], ArrType &f, ArrType &e){
-    // 本算法按照keys[i]从小到大地将f[0]~f[RADIX-1]所指的RADIX个子表，依次链接成一个静态链表
+    // 收集：本算法按照keys[i]从小到大地将f[0]~f[RADIX-1]所指的RADIX个子表，依次链接成一个静态链表
     // e[0]~e[RADIX-1]是各个子表的尾指针
     int j,t;
     for(j=0; !f[j]; j= succ(j)); // 找到第一个非空子表, succ是求后继函数
-    r[0].next = f[j]; t = e[j]; // r[0].next指向第一个非空子表中的第一个结点
+    r[0].next = f[j]; t = e[j]; // r[0].next指向第一个非空子表中的第一个结点,t指向第一个非空子表的最后一个结点
     while(j<RADIX){ // 遍历所有子表
         for(j=succ(j); j<RADIX-1&&!f[j]; j=succ(j)); // 找到下一个非空子表
-        if(f[j]) { // 链接2个非空子表
+        if(f[j]) { //  如果找到了下一个非空子表，则将其链接到前一个子表的最后一个结点后面
             r[t].next = f[j];  // 将当前子表的第一个结点链接到前一个子表的最后一个结点后面
             t = e[j]; // 更新前一个子表的最后一个结点
         }
@@ -101,12 +111,11 @@ void RadixSort(SLList &L){
     // 对L做基数排序，使得L成为按关键字自小到大的有序静态链表，L.r[0]是头结点
     int i;
     ArrType f,e; 
-    for(i=0; i<L.recnum;++i) L.r[i].next=i+1;// 对每个关键字进行排序
-    L.r[L.recnum].next = 0; // 尾结点next域置为0
+    for(i=0; i<L.recnum;++i) L.r[i].next=i+1;// L.r[i].next指向下一个结点，最后一个结点的next域指向0
+    L.r[L.recnum].next = 0; 
     for(i=0; i<L.keynum; ++i){ // 按照低位优先依次对各个关键字进行分配和收集
         // 第i趟分配和收集
         Distribute(L.r,i,f,e); // 将L.r[0].next所指的静态链表按照第i个关键字进行分配
         Collect(L.r,f,e); // 将分配好的静态链表进行收集
     }
 }
-

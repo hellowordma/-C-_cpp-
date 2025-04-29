@@ -45,8 +45,9 @@ typedef struct SqList{ // 顺序表类型
 // 参考课本：p255
 
 void Merge(RedType R[], RedType T[], int low, int mid, int high){
-    // 将有序表R[low]~R[mid]和R[mid+1]~R[high]归并成一个有序表T[low]~T[high]
-    int i = low, j = mid + 1, k = low; // i是第一个有序表的起始位置，j是第二个有序表的起始位置，k是T的起始位置
+    // 将有序表R[low]~R[mid]和R[mid+1]~R[high]归并成一个有序表T[low]~T[high]。
+    // T算是辅助数组，是O(n)级别
+    int i = low, j = mid + 1, k = low; // i是R中第一个有序表的起始位置，j是第二个有序表的起始位置，k是T的起始位置
     while(i <= mid && j <= high){ // 将R中的记录由小到大地并入T中
         if(R[i].key <= R[j].key){ // 如果第一个有序表的当前元素小于等于第二个有序表的当前元素
             T[k++] = R[i++]; // 将第一个有序表的当前元素放入T中，并移动i和k
@@ -56,6 +57,7 @@ void Merge(RedType R[], RedType T[], int low, int mid, int high){
     while(i <= mid) T[k++] = R[i++]; // 如果有剩余，将第一个有序表中剩余的元素放入T中
     while(j <= high) T[k++] = R[j++]; // 如果有剩余，将第二个有序表中剩余的元素放入T中
 }
+
 
 // 【算法8.11】归并排序（Merge Sort）
 // 参考视频：第14周13--第8章排13--8.5归并排序 https://www.bilibili.com/video/BV1nJ411V7bd?vd_source=b53bd15b89ae068fd295b2d36a386a97&spm_id_from=333.788.player.switch&p=171
@@ -68,7 +70,7 @@ void Merge(RedType R[], RedType T[], int low, int mid, int high){
 // 适用性：适用于顺序表和链表。链表不需要附加存储空间，但递归调用时需要开辟相应的递归工作栈空间。
 
 void MSort(RedType R[], RedType T[], int low, int high){
-    // 将R[low]~R[high]归并排序，结果放入T[low]~T[high]
+    // 将R[low]~R[high]归并排序，结果放入T[low]~T[high]。递归调用自身以及Merge函数。
     if(low==high) T[low] = R[low]; // 如果只有一个元素，直接将其放入T中
     else{
         int mid = low + (high-low) / 2; // 计算中间位置mid,将当前序列一分为二，mid作为分裂点
@@ -80,6 +82,6 @@ void MSort(RedType R[], RedType T[], int low, int high){
 }
 
 void MergeSort(SqList &L){
-    // 对顺序表R[1]~R[n]进行归并排序
+    // 对顺序表R[1]~R[n]进行归并排序,调用MSort函数
     MSort(L.r, L.r, 1, L.length); // 将L.R[1]~L.R[n]归并排序，结果放入到L.R[1]~L.R[n]
 }
