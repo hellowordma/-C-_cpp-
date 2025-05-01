@@ -87,20 +87,20 @@ void SelectSort(LinkList &L){
 void DuplexSort(DuLinkList &L){
     // 双向链表的双向冒泡排序
     int exchange = 1; // 交换标志
-    DuLNode *head = L, *tail = NULL; // head指向头结点，tail指向尾结点
+    DuLNode *head = L, *tail = NULL; // head指向头结点（注意不是首元结点），tail指向尾结点。类似于顺序表的low和high（分别赋值为-1和n，其中有效下标是0~n-1）
     while(exchange){
-        DuLNode *p = head->next; // p指向当前结点。
         exchange = 0; // 初始化交换标志为0,假定没有交换。
+        DuLNode *p = head->next; // p指向当前结点。
         while(p->next!=tail){ // 向下冒泡，直到尾结点。每一趟使得最大元素沉底。
             if(p->data.key>p->next->data.key){ // 如果当前结点的关键字大于下一个结点的关键字，则交换
                 DuLNode *temp = p->next; // temp指向下一个结点
                 exchange = 1; // 设置交换标志为1，表示发生了交换
                 // 接下来进行双向链表的交换操作
-                p->next = temp->next; temp->next->prior = p; // 先将当前结点从链表中摘下
-                p->prior->next = temp; temp->prior = p->prior; // 将当前结点的前驱结点指向下一个结点
-                temp->next = p; p->prior = temp; // 将下一个结点插入到当前结点的前面
+                p->next = temp->next; temp->next->prior = p; // 先将p与p->next->next连接起来
+                p->prior->next = temp; temp->prior = p->prior; // 再将p->prior与p->next连接起来
+                temp->next = p; p->prior = temp; // 最后将p->next与p连接起来。实现了p与p->next的交换
             }
-            else p = p->next; // 如果没有交换，则p指向下一个结点
+            else p = p->next; // 如果没有交换，则p指向下一个结点。（如果交换了，则p相当于调整到了下一个结点）
         }
         tail = p; // 更新尾结点为当前结点, 准备向上冒泡
         p = tail->prior; // p指向当前结点的前驱结点
@@ -109,13 +109,13 @@ void DuplexSort(DuLinkList &L){
                 DuLNode *temp = p->prior; // temp指向前一个结点
                 exchange = 1; // 设置交换标志为1，表示发生了交换
                 // 接下来进行双向链表的交换操作 （与向下冒泡的交换操作的3行代码相比，只需要互换prior和next即可）
-                p->prior = temp->prior; temp->prior->next = p; // 先将当前结点从链表中摘下
-                p->next->prior = temp; temp->next = p->next; // 将当前结点的后继结点指向前一个结点
-                temp->prior = p; p->next = temp; // 将前一个结点插入到当前结点的后面
+                p->prior = temp->prior; temp->prior->next = p; // 先将p与p->prior->prior连接起来
+                p->next->prior = temp; temp->next = p->next; // 再将p->next与p->prior连接起来
+                p->next = temp; temp->prior = p;  // 最后将p与p->prior连接起来。实现了p与p->prior的交换
             }
-            else p = p->prior; // 如果没有交换，则p指向前一个结点
+            else p = p->prior; // 如果没有交换，则p指向下一个结点。（如果交换了，则p相当于调整到了下一个结点）
         }
-        head = p; // 更新头结点为当前结点，准备向下冒泡
+        head = p; // 更新头结点为当前结点，准备向下冒泡。注意下面没有p= head->next，因为下一趟while会在一开始实现这一点。
     }
 }
 
@@ -199,12 +199,39 @@ void Process(int a[], int n){
     }
 }
 
+// 我的方法：不用数组，用顺序表SqList。
+#define MAXSIZE 20 // 顺序表的最大长度
+typedef int KeyType; // 关键字类型。暂时假设为int类型
+typedef int InfoType; // 其他数据域类型。暂时假设为int类型
+typedef struct RedType{ // 记录类型
+    KeyType key; // 关键字类型
+    InfoType otherinfo; // 其他数据域
+} RedType; // RedType是线性表的元素类型，包含关键字和其他数据域。KeyType是关键字类型。
+typedef struct SqList{ // 顺序表类型
+    RedType r[MAXSIZE+1]; // r[0]闲置或者做哨兵。r[1]~r[length]是线性表的元素
+    int length; // 线性表的长度
+} SqList; // SqList是顺序表，包含关键字和其他数据域。RedType是线性表的元素类型，包含关键字和其他数据域。
+void Porcess_sqlist(SqList &L){
+    int n = L.length;
+    int low =1,high=n;
+    while(low<high){
+        while(L.r[low].key<0 &&low<high) ++low;
+        while(L.r[high].key>=0 && low<high) --high;
+        KeyType temp = L.r[low].key;
+        L.r[low].key = L.r[high].key;
+        L.r[high].key = temp;
+        ++low; --high; // 交换后，low和high都要分别向后和向前移动1位
+    }
+}
+
+
 // 5.借助于快速排序的算法思想，在一组无序的记录中查找给定关键字值等于 key 的记录。设此组记录存放于数组r[1...n]中。
 //     若查找成功，则输出该记录在r数组中的位置及其值，否则显示“not found”信息。请简要说明算法思想并编写算法。
 // 思路：双指针
 // 参考习题:p183
 int Search(ElemType r[],int low, int high, KeyType k){
     // 在r[low]~r[high]中查找关键字为k的记录，返回其位置
+
     while(low<high){
         while(low<high && r[high].key>k) --high;
         if(r[high].key==k) return high; // 找到关键字为k的记录，返回其位置
