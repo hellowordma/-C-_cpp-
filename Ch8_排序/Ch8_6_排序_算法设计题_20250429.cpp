@@ -87,20 +87,20 @@ void SelectSort(LinkList &L){
 void DuplexSort(DuLinkList &L){
     // 双向链表的双向冒泡排序
     int exchange = 1; // 交换标志
-    DuLNode *head = L, *tail = NULL; // head指向头结点，tail指向尾结点
+    DuLNode *head = L, *tail = NULL; // head指向头结点（注意不是首元结点），tail指向尾结点。类似于顺序表的low和high（分别赋值为-1和n，其中有效下标是0~n-1）
     while(exchange){
-        DuLNode *p = head->next; // p指向当前结点。
         exchange = 0; // 初始化交换标志为0,假定没有交换。
+        DuLNode *p = head->next; // p指向当前结点。
         while(p->next!=tail){ // 向下冒泡，直到尾结点。每一趟使得最大元素沉底。
             if(p->data.key>p->next->data.key){ // 如果当前结点的关键字大于下一个结点的关键字，则交换
                 DuLNode *temp = p->next; // temp指向下一个结点
                 exchange = 1; // 设置交换标志为1，表示发生了交换
                 // 接下来进行双向链表的交换操作
-                p->next = temp->next; temp->next->prior = p; // 先将当前结点从链表中摘下
-                p->prior->next = temp; temp->prior = p->prior; // 将当前结点的前驱结点指向下一个结点
-                temp->next = p; p->prior = temp; // 将下一个结点插入到当前结点的前面
+                p->next = temp->next; temp->next->prior = p; // 先将p与p->next->next连接起来
+                p->prior->next = temp; temp->prior = p->prior; // 再将p->prior与p->next连接起来
+                temp->next = p; p->prior = temp; // 最后将p->next与p连接起来。实现了p与p->next的交换
             }
-            else p = p->next; // 如果没有交换，则p指向下一个结点
+            else p = p->next; // 如果没有交换，则p指向下一个结点。（如果交换了，则p相当于调整到了下一个结点）
         }
         tail = p; // 更新尾结点为当前结点, 准备向上冒泡
         p = tail->prior; // p指向当前结点的前驱结点
@@ -109,13 +109,13 @@ void DuplexSort(DuLinkList &L){
                 DuLNode *temp = p->prior; // temp指向前一个结点
                 exchange = 1; // 设置交换标志为1，表示发生了交换
                 // 接下来进行双向链表的交换操作 （与向下冒泡的交换操作的3行代码相比，只需要互换prior和next即可）
-                p->prior = temp->prior; temp->prior->next = p; // 先将当前结点从链表中摘下
-                p->next->prior = temp; temp->next = p->next; // 将当前结点的后继结点指向前一个结点
-                temp->prior = p; p->next = temp; // 将前一个结点插入到当前结点的后面
+                p->prior = temp->prior; temp->prior->next = p; // 先将p与p->prior->prior连接起来
+                p->next->prior = temp; temp->next = p->next; // 再将p->next与p->prior连接起来
+                p->next = temp; temp->prior = p;  // 最后将p与p->prior连接起来。实现了p与p->prior的交换
             }
-            else p = p->prior; // 如果没有交换，则p指向前一个结点
+            else p = p->prior; // 如果没有交换，则p指向下一个结点。（如果交换了，则p相当于调整到了下一个结点）
         }
-        head = p; // 更新头结点为当前结点，准备向下冒泡
+        head = p; // 更新头结点为当前结点，准备向下冒泡。注意下面没有p= head->next，因为下一趟while会在一开始实现这一点。
     }
 }
 
@@ -125,23 +125,35 @@ void DuplexSort(DuLinkList &L){
 // 思路：
 //      设4个指针i,j和 k1、k2，分别用来指向第一块白色石头、红色石头、最后一块白色石头和蓝色石头。首先找到从左向右第一块不为红的石头和从右向左第一块不为蓝的石头。
 //      如果从左向在一块不为红的石头是蓝色的，则把它与从右向左第一块不为蓝的石头交换。如果从右向左第一不为蓝的石头是红色的，则把它与从左向右第一块不为红的石头交换。
-//      如果这两块石头都是自的，则把这两块石头之后出现的第一块红石头与第一块白石头交换或之后第一块蓝石头与最后一个石头交换。
+//      如果这两块石头都是白的，则把这两块石头之后出现的第一块红石头与第一块白石头交换或之后第一块蓝石头与最后一个石头交换。
 //      重复上述步骤、直至所有石头都遍历完毕。
 // 参考习题:p180-p182
 void QkSort(char r[],int n){
     // r是存放砾石颜色的数组，n是砾石的数量，元素有红白蓝三种颜色。要求重新安排这些砾石，使得所有红色砾石在前，白色砾石居中，蓝色砾石在后。
     int i = 1, j = 1, k1 = n ,k2 =n; // i指向第一块白色石头，j指向红色石头，k1指向蓝石头，k2指向最后一块白色石头
-    while(j<k1){ // 遍历所有石头
+    while(j<k1){ // 遍历所有石头。以j（指向红色石头）为基准，k1（指向蓝色石头）为结束条件
         while(r[k1]=='B'){ // 从右向左找到第一块不为蓝的石头
             --k1;--k2;
         }
         while(r[i]=='R'){ // 从左向右找到第一块不为红的石头
             ++i;++j;
         }
-        if(r[j]=='B'){ // 如果从左向右第一块不为红的石头是蓝色的，则交换它与从右向左第一块不为蓝的石头
+        if(r[i]=='B'){ // 如果从左向右第一块不为红的石头r[i]是蓝色的，则交换它与从右向左第一块不为蓝的石头r[k1]
+            char temp = r[i]; // 交换r[i]和r[k2]
+            r[i] = r[k2];
+            r[k2] = temp; 
+            while(r[i]=='R'){ // 如果交换后r[i]是红色的，则继续向右移动i和j
+                ++i;++j;
+            }
+            while(r[k1]=='B'){ // 如果交换后r[k1]是蓝色的，则继续向左移动k1和k2
+                --k1;--k2;
+            }
+        }
+        else if(r[k1]=='R'){ // 否则（此时r[i]=='W'），如果从右向左第一块不为蓝的石头是红色的，则交换它与从左向右第一块不为红的石头
             char temp = r[i]; // 交换r[i]和r[k2]
             r[i] = r[k2];
             r[k2] = temp;
+            // 下面2个while与上面2个while相同。
             while(r[i]=='R'){ // 如果r[i]是红色的，则继续向右移动i和j
                 ++i;++j;
             }
@@ -149,32 +161,42 @@ void QkSort(char r[],int n){
                 --k1;--k2;
             }
         }
-        else if(r[k1]=='R'){ // 如果从右向左第一块不为蓝的石头是红色的，则交换它与从左向右第一块不为红的石头
-            char temp = r[i]; // 交换r[i]和r[k2]
-            r[i] = r[k2];
-            r[k2] = temp;
-            while(r[i]=='R'){ // 如果r[i]是红色的，则继续向右移动i和j
-                ++i;++j;
-            }
-            while(r[k1]=='B'){ // 如果r[k1]是蓝色的，则继续向左移动k1和k2
-                --k1;--k2;
-            }
-        }
-        else{ // 两块石头都是白色
+        else{ // 两块石头都是白色。此时i和j 可能要分离，k1和k2也可能要分离。
             while(r[j]=='W') ++j; // 如果r[j]是白色的，则继续向右移动j,直到找到第一块不为白的石头
-            if(j>=k1) break; // 如果j大于等于k1，则退出循环
+            if(j>=k1) break; // 如果j大于等于k1，则退出循环。此时左右汇合了，说明所有的石头都已经遍历完毕。
             if(r[j]=='R'){ // 如果r[j]是红色的，则交换它与从左到右第一块白色石头
                 char temp = r[i]; // 交换r[i]和r[j]
                 r[i] = r[j];
                 r[j] = temp;
-                ++i; // 交换后，i向右移动1位
+                ++i; // 交换后，此时r[i]为红色，所以i向右移动1位
             }
             else{ // 如果r[j]是蓝色的，则交换它与从右到左的第一块白色石头
                 char temp = r[k2]; // 交换r[k2]和r[j]
                 r[k2] = r[j];
                 r[j] = temp;
-                --k1; // 交换后，k2向左移动1位
+                --k2; // 交换后，此时r[k2]为蓝色，所以k2向左移动1位。
             }
+        }
+    }
+}
+// 我的方法：荷兰国旗问题，三指针法。
+void QkSort_custom(char r[],int n){
+    int low=0, mid =0, high = n-1;  // 三指针。红色区右边界（[0, low-1]是红色）；白色区右边界（[low, mid-1]是白色），蓝色区左边界（[high+1, n-1]是蓝色）。
+    while(mid<=high){ // 注意是mid<=high，而不是mid<high。因为还要对最后一个元素进行判断。
+        if (r[mid] =='R'){ // 如果r[mid]是红色
+            char temp = r[mid]; // 交换r[mid]和r[low]
+            r[mid] = r[low];
+            r[low] = temp;
+            ++low; ++mid; // 交换后，low和mid都要分别向后移动1位
+        }
+        else if (r[mid] =='B'){ // 如果r[mid]是蓝色
+            char temp = r[mid]; // 交换r[mid]和r[high]
+            r[mid] = r[high];
+            r[high] = temp;
+            --high; // 交换后，high向左移动1位
+        }
+        else { // 如果r[mid]是白色
+            ++mid;
         }
     }
 }
@@ -199,12 +221,39 @@ void Process(int a[], int n){
     }
 }
 
+// 我的方法：不用数组，用顺序表SqList。
+#define MAXSIZE 20 // 顺序表的最大长度
+typedef int KeyType; // 关键字类型。暂时假设为int类型
+typedef int InfoType; // 其他数据域类型。暂时假设为int类型
+typedef struct RedType{ // 记录类型
+    KeyType key; // 关键字类型
+    InfoType otherinfo; // 其他数据域
+} RedType; // RedType是线性表的元素类型，包含关键字和其他数据域。KeyType是关键字类型。
+typedef struct SqList{ // 顺序表类型
+    RedType r[MAXSIZE+1]; // r[0]闲置或者做哨兵。r[1]~r[length]是线性表的元素
+    int length; // 线性表的长度
+} SqList; // SqList是顺序表，包含关键字和其他数据域。RedType是线性表的元素类型，包含关键字和其他数据域。
+void Porcess_sqlist(SqList &L){
+    int n = L.length;
+    int low =1,high=n;
+    while(low<high){
+        while(L.r[low].key<0 &&low<high) ++low;
+        while(L.r[high].key>=0 && low<high) --high;
+        KeyType temp = L.r[low].key;
+        L.r[low].key = L.r[high].key;
+        L.r[high].key = temp;
+        ++low; --high; // 交换后，low和high都要分别向后和向前移动1位
+    }
+}
+
+
 // 5.借助于快速排序的算法思想，在一组无序的记录中查找给定关键字值等于 key 的记录。设此组记录存放于数组r[1...n]中。
 //     若查找成功，则输出该记录在r数组中的位置及其值，否则显示“not found”信息。请简要说明算法思想并编写算法。
 // 思路：双指针
 // 参考习题:p183
 int Search(ElemType r[],int low, int high, KeyType k){
     // 在r[low]~r[high]中查找关键字为k的记录，返回其位置
+
     while(low<high){
         while(low<high && r[high].key>k) --high;
         if(r[high].key==k) return high; // 找到关键字为k的记录，返回其位置
