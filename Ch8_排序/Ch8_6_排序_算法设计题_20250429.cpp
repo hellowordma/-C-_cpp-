@@ -291,3 +291,17 @@ void CountSort(RecType a[], RecType b[],int n){
     }
 }
 // 关键字比较次数是n²；简单选择排序由于本算法，因为简单选择排序的比较次数是 n(n-1)/2，且空间复杂度为O(1)。本算法空间复杂度为O(n).
+
+
+
+/**
+ * Definition for a binary tree node.
+ * struct TreeNode {
+ *     int val;
+ *     TreeNode *left;
+ *     TreeNode *right;
+ *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+ * };
+ */

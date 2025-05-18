@@ -335,17 +335,20 @@ void InOrderThreading(BiThrTree &Thrt, BiThrTree T){ // 带头结点的二叉树
 void InOrderTraverse_Thr(BiThrTree T){ // 遍历中序线索二叉树
     // 此时的T是经过线索化的二叉树了，T指向头结点，头结点的左链lchild指向根结点，可参见【算法5.8】的InOrderThreading函数
     // 中序遍历二叉线索树T的非递归算法，对每个数据元素直接输出
+    // 中序遍历的后继查找方法：
+    // 1. 若p->RTag ==1，则p的右孩子指针指向后继结点，直接访问p->rchild
+    // 2. 若p->RTag ==0，则p的右孩子指针指向右子树，访问右子树的最左下结点，就是后继结点
     BiThrNode *p = T->lchild; // p指向第一个结点也就是根结点
-    while (p != T){ // 空树或者遍历完毕时，p==T，退出循环。类似循环链表的终止条件(p!=L)
+    while (p != T){ // 空树或者遍历完毕时，p==T，退出循环。类似循环链表的终止条件(p!=L)。因为最后一个节结点的rchild指向头结点T。
         while (p->LTag == 0) p = p->lchild; // 从根节点开始，沿着左孩子向下,直到中序遍历的第1个结点
         cout << p->data << " "; // 输出值
         // 接下来从中序遍历的第1个结点开始，遍历后继结点，直到最后一个结点
-        while (p->RTag == 1 && p->rchild != T) { // 如果p的右标志域为1，且p的右孩子不指向头结点
+        while (p->RTag == 1 && p->rchild != T) { // 如果p的右标志域为1，且p的右孩子不指向头结点T
             p = p->rchild; // 沿着右线索访问后继结点
             cout << p->data << " ";  // 输出值
         }
-        p = p->rchild; // 转向p的右子树，此时p指向最后1个结点，
-        // 然后会最后一次进入while(p != T)循环，然后cout p->data，然后再指向p->rchild，此时p==T，要结束循环
+        p = p->rchild; // 如果上面的 while 终止（即 RTag == 0），说明要跳到右子树。此时如果能继续进行外面的 while 循环，
+        // （接上一行）那就可以通过右子树中最左下的结点（右子树的访问时的第一个结点）来访问后继结点了。
     }
 }
 
