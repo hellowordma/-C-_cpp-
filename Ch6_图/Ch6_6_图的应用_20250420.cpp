@@ -47,7 +47,7 @@ int LocateVex(AMGraph G, VertexType u) { // 查找顶点u在图G中的位置
     return -1; // 没有找到，返回-1
 }
 
-// 图的邻接表存储表示 ALGGraph
+// 图的邻接表存储表示 ALGraph
 typedef int OtherInfo; // 其他信息类型，主要是边的信息比如权值,暂定为int类型 
 #define MVNUM 100 // 最大顶点数
 typedef struct ArcNode{ // 边结点类型
@@ -110,13 +110,13 @@ void MiniSpanTree_Prim(AMGraph G, VertexType u){
     for(i=1; i<G.vexnum; ++i) { // 注意i从1而不是0开始，循环n-1次。
         // 选择其余n-1个顶点，生成n-1条边（n=G.vexnum）。
         k = Min(closedge, G.vexnum); // 此k非彼k。求出T的下一个结点：第k个顶点，closedge[k]中存有当前的最小边
-        u0=closedge[k].adjvex; // u0为最小边的顶点，u0∈U
+        u0=closedge[k].adjvex; // u0为最小边的顶点，u0∈U。第一次循环的时候u0=u。
         v0=G.vexs[k]; // v0为最小边的另一个顶点，v0∈V-U
         cout<<u0<<"-->"<<v0<<endl; // 输出最小边
-        closedge[k].lowcost = 0; // 将该边的权值置为0，表示第k个顶点已加入U
+        closedge[k].lowcost = 0; // 将该边的权值置为0，表示第k个顶点v0已加入U
         for(j=0; j<G.vexnum; ++j) { // 新顶点（索引k）并入U后，重新选择最小边（遍历整个V，其中也就包含了V-U）
             if( G.arcs[k][j] < closedge[j].lowcost) { // 如果第k个顶点到第j个顶点的权值小于closedge[j]中的权值
-                closedge[j] = {G.vexs[k], G.arcs[k][j]}; // 更新closedge[j]
+                closedge[j] = {G.vexs[k], G.arcs[k][j]}; // 更新closedge[j]。注意v0=G.vexs[k]
             } 
             // 这里是通过closedge[k].lowcost = 0以及 判断 G.arcs[k][j] < closedge[j].lowcost来实现V-U的遍历的。
             // 因为U中的顶点必然满足closedge[k].lowcost = 0，所以G.arcs[k][j] < closedge[j].lowcost是不可能的，肯定不会更新closedge[j]
@@ -137,10 +137,10 @@ typedef struct Edge{
 } Edge[MAXARCNUM]; // 
 // 辅助数组Vexset：标识各个顶点所属的连通分量。初始时Vexset[i] = i，表示每个顶点都各自成为一个连通分量
 int Vexset[MAXVNUM]; // 辅助数组，存储每个顶点所在的集合
-// 辅助函数Sort：对边集数组进行排序
+// 辅助函数Sort：对边集数组进行排序（升序）
 void Sort(Edge edge, int arcnum){ //相当于冒泡排序，时间复杂度O(e²)。之后可以考虑替换成O(e*log(e))的排序算法比如第8章的堆排序
     Edge temp; // 边集数组的临时变量, 用于交换
-    for (int i = 0; i < arcnum - 1; i++) { // 注意要-1
+    for (int i = 0; i < arcnum - 1; i++) { // 注意要-1（因为冒泡排序涉及到j和j+1的比较）
         for (int j = 0; j < arcnum - 1 - i; j++) { // 注意要-1-i
             if (edge[j].lowcost > edge[j + 1].lowcost) { // 升序排列
                 // 交换边的权值
@@ -160,7 +160,7 @@ void MinSpanTree_Kruskal(AMGraph G){
     Edge edge; // 边集数组
     int arc_count = 0; // 边数初始化为0
     for(i=0; i<G.vexnum; ++i) { // 遍历邻接矩阵, 对edge数组赋值。
-        for(j=i; j<G.vexnum; ++j) { // 注意j从i到G.vexnum
+        for(j=i; j<G.vexnum; ++j) { // 注意j从i到G.vexnum，相当于遍历上三角矩阵（对称矩阵），包含主对角线上的元素。
             // 这里是为了避免重复添加边，比如(1,2)和(2,1)是同一条边
             if(G.arcs[i][j] != MAXINT) { // 如果存在边(MAXINT针对网，0针对图)
                 edge[arc_count].Head = G.vexs[i]; // 边的始点
@@ -193,19 +193,19 @@ void MinSpanTree_Kruskal(AMGraph G){
 // 参考课本：p173-p174
 // 时间复杂度：O(n²)，n是顶点数。适合稠密图。
 
-// 辅助数组S：存储已知最短路径的顶点
+// 辅助数组S：存储已知最短路径的顶点。相当于bool flag数组，表示顶点是否在集合S中。
 int S[MAXVNUM]; // S[i] = True表示第i个顶点在集合S中，False表示尚未确定
-// 辅助数组Path：存储最短路径的前驱顶点
-int Path[MAXVNUM]; // Path[i]表示第i个顶点的前驱顶点
-// 辅助数组D：存储从源点到各个顶点的最短路径
-int D[MAXVNUM]; // D[i]表示从源点到第i个顶点的最短路径
+// 辅助数组Path：存储最短路径的前驱顶点。相当于记录弧尾点的数组。
+int Path[MAXVNUM]; // Path[i]表示第i个顶点的前驱顶点。如果Path[i] = -1，表示第i个顶点没有前驱顶点，即不存在从源点到第i个顶点的路径；如果Path[i] = v0，表示第i个顶点的前驱顶点是源点v0。
+// 辅助数组D：存储从源点到各个顶点的最短路径。
+int D[MAXVNUM]; // D[i]表示从源点到第i个顶点的最短路径。初值为：如果有弧，则为弧上的权值；如果没有弧，则为极大值MAXINT（相当于正无穷大）。
 
 // 正式开始
 void ShortestPath_DIJ(AMGraph G, int v0){
     // 用Dijkstra算法求有向网G从顶点v0到其余各顶点的最短路径。用到3个辅助数组S、Path、D
     int i,v,w,min_; // 定义变量i,v,w,min_
     int n = G.vexnum; // 顶点数
-    for(v = 0; v < n; ++v){
+    for(v = 0; v < n; ++v){ // 对于所有顶点，初始化S、Path、D数组
         S[v] = False; // 初始化S数组，为空集合
         D[v] = G.arcs[v0][v]; // 初始化D数组，将v0到各个终点v的最短路径长度初始化为弧上的权值
         if(D[v] < MAXINT) Path[v] = v0; // 如果v0到v之间有弧，则Path[v]初始化为v0，表示v的前驱顶点是v0
@@ -364,19 +364,19 @@ Status TopologicalSort(ALGraph G,int topo[]){
     // topo[]是拓扑序列的存储数组
     int i, k, count = 0; // 定义变量i、j、k、count.对输出顶点计数，初始为0
     ArcNode *p; // 定义指针p，指向邻接表中的边
-    InitStack(S_toposort); // 初始化栈S_toposort
-    FindInDegree(G, indegree); // 求入度
+    InitStack(S_toposort); // 初始化栈S_toposort（存储入度为0的顶点的下标）
+    FindInDegree(G, indegree); // 求入度数组indegree（存储各个顶点的入度）
     for(i=0; i<G.vexnum; ++i) 
         if(!indegree[i]) Push(S_toposort, i); // 将入度为0的顶点的下标入栈
     while(!StackEmpty(S_toposort)) { // 栈不空
-        Pop(S_toposort, i); // 出栈, i为出栈顶点
-        topo[count++] = i; // 将出栈顶点存入拓扑序列, 并且计数加1
-        p = G.vertices[i].firstarc; // p指向第i个顶点的第一个邻接点
-        while(p){ // 遍历i所有邻接点
-            k = p->adjvex; // p的邻接点设为k
-            --indegree[k]; // 入度减1
+        Pop(S_toposort, i); // 出栈, vi为出栈顶点
+        topo[count++] = i; // 将出栈顶点vi存入拓扑序列, 并且计数加1
+        p = G.vertices[i].firstarc; // p指向第i个顶点vi的第一个邻接点
+        while(p){ // 遍历vi所有邻接点
+            k = p->adjvex; // vi（p)的邻接点设为vk
+            --indegree[k]; // vi的所有邻接点的入度减1
             if(!indegree[k]) Push(S_toposort, k); // 如果入度为0，则k入栈
-            p = p->nextarc; // p指向i的下一个邻接点
+            p = p->nextarc; // p指向vi的下一个邻接点vk
         }
     }
     if (count < G.vexnum) return ERROR; // 如果输出顶点数小于顶点数，则有回路
@@ -405,32 +405,32 @@ Status CriticalPath(ALGraph G){
     int n = G.vexnum; // 顶点数
     int i, j, k, e, l; // 定义变量i、j、k、e、l。
     ArcNode *p; // 定义指针p，指向邻接表中的边
-    for(int i=0; i<n; ++i) { // 初始化ve数组所有元素都为0
-        ve[i] = 0; // ve[i]表示第i个顶点的最早发生时间
+    for(int i=0; i<n; ++i) { // 初始化ve数组所有元素都为0，顺便实现ve[0] = 0
+        ve[i] = 0; // 相当于初始化最大值为0。
     }
     /*------按照拓扑排序，求每个事件的最早发生时间ve------*/
     for(i=0; i<n; ++i) {
         k = topo[i]; // k为拓扑序列中的第i个顶点
         p= G.vertices[k].firstarc; // p指向第k个顶点的第一条边
         while(p) { // 依次更新k的所有邻接点的最早发生时间ve
-            j = p->adjvex; // p的邻接点为j
+            j = p->adjvex; // vk的邻接点为vj
             if(ve[j] < ve[k] + p->weight) // 更新ve[j]，如果ve[j]小于ve[k] + p->weight。p->weight是边<vk,vj>的权值
                 ve[j] = ve[k] + p->weight; 
-            p = p->nextarc; // p指向k的下一个邻接点
+            p = p->nextarc; // 指向k的下一个邻接点
         }
     }
     for(i=0; i<n; ++i) { // 初始化vl数组所有元素为ve[n-1]，顺便实现vl[n-1] = ve[n-1]
-        vl[i] = ve[n-1]; 
+        vl[i] = ve[n-1]; // 相当于初始化最小值为ve[n-1]
     }
     /*------按照逆拓扑排序，求每个事件的最迟发生时间vl（格式非常类似拓扑排序更新ve）------*/
     for(i = n - 1; i >= 0; --i) { // 注意i从n-1到0, 逆拓扑排序
         k = topo[i];
         p = G.vertices[k].firstarc;
         while(p) { // 依次更新k的所有邻接点的最迟发生时间vl
-            j = p->adjvex;
+            j = p->adjvex; // vk的邻接点为vj
             if(vl[k] > vl[j] - p->weight) // 更新vl[k]，如果vl[k]大于vl[j] - p->weight。p->weight是边<vk,vj>的权值
                 vl[k] = vl[j] - p->weight; 
-            p = p->nextarc;
+            p = p->nextarc; // 指向k的下一个邻接点
         }
     }
     /*------判断每一活动是否为关键活动（关键路径上的活动称为关键活动）------*/
